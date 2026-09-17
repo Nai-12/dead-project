@@ -8,7 +8,10 @@ import makeWASocket, {
 } from "@kanaraa/baileys";
 import pino from "pino";
 import qrcode from "qrcode-terminal";
+import fs from "fs";
+import { loadPlugins } from "./plugins/index.js";
 
+const plugins = await loadPlugins();
 const logger = pino({ level: "silent" });
 
 async function startBot() {
@@ -51,9 +54,12 @@ async function startBot() {
       content?.documentMessage?.caption ||
       "";
 
-    if (text === ".ping") {
-      await sock.sendMessage(jid, { text: `pong, ${type}` });
-    }
+    const [cmd, ...args] = text.trim().split(" ");
+
+    const plugin = plugins.find((p) => p.command === cmd.replace(".", ""));
+    if (!plugin) return;
+
+    await plugin.run(sock, jid, args);
   });
 }
 
